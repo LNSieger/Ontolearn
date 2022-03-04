@@ -17,7 +17,7 @@ from owlapy.model import OWLObjectPropertyRangeAxiom, OWLOntologyManager, OWLDat
     OWLOntologyChange, AddImport, OWLEquivalentClassesAxiom, OWLThing, OWLAnnotationAssertionAxiom, DoubleOWLDatatype, \
     OWLObjectInverseOf, BooleanOWLDatatype, IntegerOWLDatatype, DateOWLDatatype, DateTimeOWLDatatype, OWLClass, \
     DurationOWLDatatype, StringOWLDatatype, IRI, OWLDataPropertyRangeAxiom, OWLDataPropertyDomainAxiom, OWLLiteral, \
-    OWLObjectPropertyDomainAxiom, OWLSubClassOfAxiom
+    OWLObjectPropertyDomainAxiom, OWLSubClassOfAxiom, OWLClassAssertionAxiom
 from owlapy.owlready2.utils import FromOwlready2, ToOwlready2
 
 logger = logging.getLogger(__name__)
@@ -139,6 +139,47 @@ class OWLOntologyManager_Owlready2(OWLOntologyManager):
                 o_x = self._world[axiom.get_value().as_iri().as_str()]
                 assert o_x is not None, f'{axiom.get_value()} not found in {ontology}'
                 setattr(sub_x, prop_x.python_name, o_x)
+        else:
+            # TODO XXX
+            raise NotImplementedError
+            
+    def remove_axiom(self, ontology: OWLOntology, axiom: OWLAxiom):
+        conv = ToOwlready2(self._world)
+        ont_x: owlready2.namespace.Ontology = conv.map_object(ontology)
+                
+        if isinstance(axiom, OWLSubClassOfAxiom):
+            sub_class = axiom.get_sub_class()
+            super_class = axiom.get_super_class()
+            thing_x: owlready2.entity.ThingClass = conv.map_concept(super_class)
+            with ont_x:
+                assert isinstance(sub_class, OWLClass), f'Owlready2 only supports named classes ({sub_class})'
+                sub_class_x = self._world[sub_class.to_string_id()]
+                super_class_x = self._world[super_class.to_string_id()]
+                if sub_class_x is None:
+                    raise ValueError("Subclass does not exist in KB")
+                elif super_class_x is None:
+                    raise ValueError("Superclass does not exist in KB")
+                else:
+                    sub_class_x.is_a.remove(thing_x)
+
+        if isinstance(axiom, OWLClassAssertionAxiom):
+            individual = axiom.get_individual()
+            iclass = axiom.get_iclass()
+            thing_x: owlready2.entity.ThingClass = conv.map_concept(iclass)
+            with ont_x:
+                assert isinstance(sub_class, OWLClass), f'Owlready2 only supports named classes ({sub_class})'
+                individual_x = self._world[individual.to_string_id()]
+                iclass_x = self._world[iclass.to_string_id()]
+                if individual_x is None:
+                    raise ValueError("Subclass does not exist in KB")
+                elif iclass_x is None:
+                    raise ValueError("Superclass does not exist in KB")
+                else:
+                    individual_x.is_a.remove(thing_x)
+
+
+            
+
         else:
             # TODO XXX
             raise NotImplementedError
@@ -486,3 +527,5 @@ class OWLReasoner_Owlready2(OWLReasonerEx):
 
     def get_root_ontology(self) -> OWLOntology:
         return self._ontology
+    
+    
