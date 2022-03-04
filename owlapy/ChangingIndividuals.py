@@ -1,51 +1,63 @@
-### Adding axiom
-
+import os
 from ontolearn import KnowledgeBase
 from owlapy.model import OWLEquivalentClassesAxiom, OWLClass, IRI, OWLObjectIntersectionOf, \
         OWLObjectUnionOf, OWLObjectSomeValuesFrom, OWLObjectInverseOf, OWLObjectProperty, \
-        OWLThing, OWLClassAxiom, OWLSubClassOfAxiom
+        OWLThing, OWLClassAxiom, OWLSubClassOfAxiom, OWLIndividualAxiom
+from owlapy.model.__init__ import OWLClassAssertionAxiom
+from owlapy.owlready2 import _base
+from owlapy.owlready2._base import OWLOntologyManager_Owlready2
+import importlib
 
-kb = KnowledgeBase(path='Ontolearn/KGs/father.owl')
+    
+os.chdir("//home/leo/")
+   
+kb = KnowledgeBase(path='Working/Ontolearn/KGs/father.owl')
 NS_f = "http://example.com/father#"  
 manager = kb.ontology().get_owl_ontology_manager()
-
-
-# name of new class
+    
+# Add Equivalent classes axiom
 cls_a = OWLClass(IRI.create(NS_f, "AClass"))
-
-# example concept
 existingclass = OWLClass(IRI(NS_f, 'person'))
-
 equivalent_classes_axiom_example = OWLEquivalentClassesAxiom(cls_a, existingclass)
 manager.add_axiom(kb.ontology(), equivalent_classes_axiom_example)
-
-#another
-cls_b = OWLClass(IRI.create(NS_f, "BClass"))
-cls_c = OWLClass(IRI.create(NS_f, "CClass"))
-sub_class_axiom_example = OWLSubClassOfAxiom(cls_b, cls_c) #*
-manager.add_axiom(kb.ontology(), sub_class_axiom_example)
-
-# save as new rdfxml file
 manager.save_ontology(kb.ontology(), IRI.create("file:/", "new_onto.owl"))
-
+# AClass is now in the KB and a subclass of person
+    
+#Check result
+mgr = OWLOntologyManager_Owlready2()
+onto = mgr.load_ontology(IRI.create("file://new_onto.owl" )) 
+for ind in onto.classes_in_signature():
+    print(ind)
+    
+# Add SubClass Axiom
+sub_class_axiom_example = OWLSubClassOfAxiom(cls_a, existingclass)#*
+manager.add_axiom(kb.ontology(), sub_class_axiom_example)
+manager.save_ontology(kb.ontology(), IRI.create("file:/", "new_onto.owl"))
 #* The super class must already exist for this to work. If it does not exist,
 # only the first class will be added to the ontology, without being defined as subclass.
-# However, if you add a class through this "error", you can afterwards run the code again with
-# the new class as super class and it works. The subclass might already exist, but does not need to.
 
+# Remove SubClass Axiom
+sub_class_axiom_example = OWLSubClassOfAxiom(cls_a, existingclass)#**
+manager.remove_axiom(kb.ontology(), sub_class_axiom_example)
+manager.save_ontology(kb.ontology(), IRI.create("file:/", "new_onto2.owl"))
 
+#Checking which classes exist now
+mgr = OWLOntologyManager_Owlready2()
+onto = mgr.load_ontology(IRI.create("file://new_onto2.owl" )) 
+for ind in onto.classes_in_signature():
+    print(ind)
 
+'''The following does not work yet
 
-''' complicated example concept
-concept_a = OWLObjectIntersectionOf(
-    (OWLObjectUnionOf((OWLClass(IRI(NS_f, 'Lead')), OWLClass(IRI(NS_f, 'Selenium')))),
-     OWLObjectSomeValuesFrom(
-         property=OWLObjectInverseOf(OWLObjectProperty(IRI(NS_f, 'hasAtom'))),
-         filler=OWLThing)))'''
-
+indi = OWLIndividualAxiom(IRI.create(NS_f, "anna"))
+iclass = OWLClass(IRI(NS_f, 'female'))
+unclass = OWLClassAssertionAxiom(indi, iclass)
+manager.remove_axiom(kb.ontology(), unclass)
+manager.save_ontology(kb.ontology(), IRI.create("file:/", "new_onto2.owl"))
+'''
 
 '''
-#Check singleperson:
+#Check if an individual belongs to a concept:
 from SingleInstanceChecker import checksingleperson, conceptfemale
 data_file = "Ontolearn/KGs/father.owl"
 father = manager.load_ontology(IRI.create("file://" + data_file))
