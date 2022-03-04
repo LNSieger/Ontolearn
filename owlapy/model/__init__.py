@@ -2014,6 +2014,9 @@ class OWLClassAxiom(OWLLogicalAxiom, metaclass=ABCMeta):
     __slots__ = ()
     pass
 
+class OWLIndividualAxiom(OWLLogicalAxiom, metaclass=ABCMeta):
+    __slots__ = ()
+    pass
 
 class OWLNaryAxiom(Generic[_C], OWLAxiom, metaclass=ABCMeta):
     """Represents an axiom that contains two or more operands that could also be represented with multiple pairwise
@@ -2101,6 +2104,38 @@ class OWLSubClassOfAxiom(OWLClassAxiom):
 
     def __repr__(self):
         return f'OWLSubClassOfAxiom(sub_class={self._sub_class},super_class={self._super_class})'
+
+class OWLClassAssertionAxiom(OWLIndividualAxiom):
+    """Represents an ClassAssertion axiom."""
+    __slots__ = '_individual', '_iclass'
+
+    def __init__(self, individual: OWLIndividualAxiom, iclass: OWLClassExpression):
+        """Get an equivalent classes axiom with specified operands and no annotations
+
+        Args:
+            individual: the individual
+            iclass: the class the individual belongs to
+        """
+        self._individual = individual
+        self._iclass = iclass
+
+    def get_individual(self) -> OWLIndividualAxiom:
+        return self._individual
+
+    def get_iclass(self) -> OWLClassExpression:
+        return self._iclass
+
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self._iclass == other._iclass and self._individual == other._individual
+        return NotImplemented
+
+    def __hash__(self):
+        return hash((self._iclass, self._individual))
+
+    def __repr__(self):
+        return f'OWLSubClassOfAxiom(individual={self._individual},iclass={self._iclass})'
+
 
 
 class OWLAnnotationAxiom(OWLAxiom, metaclass=ABCMeta):
